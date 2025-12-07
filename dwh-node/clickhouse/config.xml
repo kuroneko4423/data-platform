@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- リモートアクセス許可 -->
+    <listen_host>0.0.0.0</listen_host>
+    
+    <!-- ログ設定 -->
+    <logger>
+        <level>information</level>
+        <console>true</console>
+    </logger>
+    
+    <!-- メモリ設定 -->
+    <max_memory_usage>20000000000</max_memory_usage>
+    <max_memory_usage_for_all_queries>25000000000</max_memory_usage_for_all_queries>
+    
+    <!-- クエリ設定 -->
+    <max_query_size>1073741824</max_query_size>
+    <max_ast_elements>500000</max_ast_elements>
+    
+    <!-- 圧縮設定 -->
+    <compression>
+        <case>
+            <method>lz4</method>
+        </case>
+    </compression>
+    
+    <!-- マージツリー設定 -->
+    <merge_tree>
+        <max_suspicious_broken_parts>100</max_suspicious_broken_parts>
+    </merge_tree>
+</clickhouse>

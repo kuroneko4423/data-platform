@@ -1,0 +1,81 @@
+# Environment files
+.env
+*.env.local
+
+# Logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Docker volumes data
+data/
+**/data/
+
+# MinIO data
+minio-data/
+
+# PostgreSQL data
+postgres-data/
+pgdata/
+
+# Redis data
+redis-data/
+
+# ClickHouse data
+clickhouse-data/
+clickhouse/data/
+
+# Airflow
+airflow-logs/
+etl-node/logs/
+
+# dbt
+etl-node/dbt/target/
+etl-node/dbt/dbt_packages/
+etl-node/dbt/logs/
+
+# Superset
+superset_home/
+
+# JupyterLab
+jupyter-data/
+
+# Code Server
+code-server-data/
+
+# CloudBeaver
+cloudbeaver-data/
+
+# Streamlit
+.streamlit/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak

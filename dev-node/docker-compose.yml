@@ -1,0 +1,137 @@
+version: '3.8'
+
+# =============================================================================
+# Dev Node - 開発・分析環境
+# Services: JupyterLab, Code Server, CloudBeaver, Streamlit
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # JupyterLab - データ分析環境
+  # ---------------------------------------------------------------------------
+  jupyterlab:
+    image: jupyter/datascience-notebook:python-3.11
+    container_name: jupyterlab
+    hostname: jupyterlab
+    ports:
+      - "8888:8888"
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:-jupyter123}
+      NB_USER: jovyan
+      CHOWN_HOME: "yes"
+      CHOWN_HOME_OPTS: "-R"
+      # データプラットフォーム接続情報
+      STORAGE_NODE_IP: ${STORAGE_NODE_IP}
+      DWH_NODE_IP: ${DWH_NODE_IP}
+      MINIO_ENDPOINT: http://${STORAGE_NODE_IP}:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      CLICKHOUSE_HOST: ${DWH_NODE_IP}
+      CLICKHOUSE_PORT: 8123
+      POSTGRES_HOST: ${STORAGE_NODE_IP}
+      POSTGRES_PORT: 5432
+    volumes:
+      - jupyter_work:/home/jovyan/work
+      - ./notebooks:/home/jovyan/notebooks
+      - ./jupyter/requirements.txt:/tmp/requirements.txt:ro
+    command: >
+      bash -c "
+        pip install -r /tmp/requirements.txt &&
+        start-notebook.sh --NotebookApp.token='$${JUPYTER_TOKEN}'
+      "
+    user: root
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+  # ---------------------------------------------------------------------------
+  # Code Server (VS Code in Browser)
+  # ---------------------------------------------------------------------------
+  code-server:
+    image: codercom/code-server:4.95.3
+    container_name: code-server
+    hostname: code-server
+    ports:
+      - "8443:8080"
+    environment:
+      PASSWORD: ${CODE_SERVER_PASSWORD:-code123}
+      SUDO_PASSWORD: ${SUDO_PASSWORD:-sudo123}
+      TZ: Asia/Tokyo
+    volumes:
+      - code_server_data:/home/coder
+      - ./workspace:/home/coder/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+  # ---------------------------------------------------------------------------
+  # CloudBeaver - Web版データベースクライアント
+  # ---------------------------------------------------------------------------
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:24.2.0
+    container_name: cloudbeaver
+    hostname: cloudbeaver
+    ports:
+      - "8978:8978"
+    volumes:
+      - cloudbeaver_data:/opt/cloudbeaver/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8978/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+  # ---------------------------------------------------------------------------
+  # Streamlit - データアプリ開発
+  # ---------------------------------------------------------------------------
+  streamlit:
+    image: python:3.11-slim
+    container_name: streamlit
+    hostname: streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      STORAGE_NODE_IP: ${STORAGE_NODE_IP}
+      DWH_NODE_IP: ${DWH_NODE_IP}
+      MINIO_ENDPOINT: http://${STORAGE_NODE_IP}:9000
+      CLICKHOUSE_HOST: ${DWH_NODE_IP}
+      POSTGRES_HOST: ${STORAGE_NODE_IP}
+    volumes:
+      - ./streamlit-apps:/app
+      - ./streamlit/requirements.txt:/requirements.txt:ro
+    working_dir: /app
+    command: >
+      bash -c "
+        pip install -r /requirements.txt &&
+        streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+      "
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+volumes:
+  jupyter_work:
+    driver: local
+  code_server_data:
+    driver: local
+  cloudbeaver_data:
+    driver: local
+
+networks:
+  dev-network:
+    driver: bridge

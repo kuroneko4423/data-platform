@@ -1,0 +1,18 @@
+# =============================================================================
+# MinIO (Hive) カタログ設定
+# STORAGE_NODE_IP を実際のStorage NodeのIPアドレスに変更してください
+# =============================================================================
+
+connector.name=hive
+hive.metastore=file
+hive.metastore.catalog.dir=s3a://gold/
+
+# Storage NodeのIPアドレスに変更してください
+hive.s3.endpoint=http://STORAGE_NODE_IP:9000
+hive.s3.path-style-access=true
+hive.s3.aws-access-key=minioadmin
+hive.s3.aws-secret-key=minioadmin123
+hive.s3.ssl.enabled=false
+
+hive.non-managed-table-writes-enabled=true
+hive.allow-drop-table=true

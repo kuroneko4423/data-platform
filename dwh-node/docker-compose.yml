@@ -1,0 +1,80 @@
+version: '3.8'
+
+# =============================================================================
+# DWH Node - データウェアハウス
+# Services: ClickHouse, Trino
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # ClickHouse - 列指向OLAP データベース
+  # ---------------------------------------------------------------------------
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8-alpine
+    container_name: clickhouse
+    hostname: clickhouse
+    ports:
+      - "8123:8123"   # HTTP interface
+      - "9000:9000"   # Native client
+      - "9009:9009"   # Interserver HTTP
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-default}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse123}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      - ./clickhouse/config.xml:/etc/clickhouse-server/config.d/custom-config.xml:ro
+      - ./clickhouse/users.xml:/etc/clickhouse-server/users.d/custom-users.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - dwh-network
+
+  # ---------------------------------------------------------------------------
+  # Trino - 分散SQLクエリエンジン
+  # ---------------------------------------------------------------------------
+  trino:
+    image: trinodb/trino:463
+    container_name: trino
+    hostname: trino
+    ports:
+      - "8080:8080"
+    environment:
+      - TRINO_ENVIRONMENT=production
+    volumes:
+      - ./trino/etc:/etc/trino:ro
+      - trino_data:/data/trino
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "trino", "--execute", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - dwh-network
+
+volumes:
+  clickhouse_data:
+    driver: local
+  clickhouse_logs:
+    driver: local
+  trino_data:
+    driver: local
+
+networks:
+  dwh-network:
+    driver: bridge

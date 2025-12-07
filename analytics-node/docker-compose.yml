@@ -1,0 +1,117 @@
+version: '3.8'
+
+# =============================================================================
+# Analytics Node - 可視化・BI
+# Services: Apache Superset, Metabase
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Apache Superset
+  # ---------------------------------------------------------------------------
+  superset:
+    image: apache/superset:4.0.1
+    container_name: superset
+    hostname: superset
+    ports:
+      - "8088:8088"
+    environment:
+      DATABASE_HOST: ${STORAGE_NODE_IP}
+      DATABASE_PORT: 5432
+      DATABASE_DB: superset
+      DATABASE_USER: superset
+      DATABASE_PASSWORD: superset123
+      REDIS_HOST: ${STORAGE_NODE_IP}
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-your-secret-key-change-in-production}
+      SUPERSET_LOAD_EXAMPLES: "no"
+      ADMIN_USERNAME: ${SUPERSET_USER:-admin}
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: ${SUPERSET_PASSWORD:-admin123}
+    volumes:
+      - superset_home:/app/superset_home
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+    command: >
+      bash -c "
+        superset db upgrade &&
+        superset fab create-admin --username admin --firstname Admin --lastname User --email admin@example.com --password admin123 || true &&
+        superset init &&
+        gunicorn --bind 0.0.0.0:8088 --workers 4 --timeout 120 'superset.app:create_app()'
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - analytics-network
+
+  # ---------------------------------------------------------------------------
+  # Superset Celery Worker
+  # ---------------------------------------------------------------------------
+  superset-worker:
+    image: apache/superset:4.0.1
+    container_name: superset-worker
+    environment:
+      DATABASE_HOST: ${STORAGE_NODE_IP}
+      DATABASE_PORT: 5432
+      DATABASE_DB: superset
+      DATABASE_USER: superset
+      DATABASE_PASSWORD: superset123
+      REDIS_HOST: ${STORAGE_NODE_IP}
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-your-secret-key-change-in-production}
+    volumes:
+      - superset_home:/app/superset_home
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+    command: celery --app=superset.tasks.celery_app:app worker --pool=prefork -O fair -c 4
+    depends_on:
+      - superset
+    restart: unless-stopped
+    networks:
+      - analytics-network
+
+  # ---------------------------------------------------------------------------
+  # Metabase
+  # ---------------------------------------------------------------------------
+  metabase:
+    image: metabase/metabase:v0.51.5
+    container_name: metabase
+    hostname: metabase
+    ports:
+      - "3000:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: ${STORAGE_NODE_IP}
+      MB_DB_PORT: 5432
+      MB_DB_DBNAME: metabase
+      MB_DB_USER: metabase
+      MB_DB_PASS: metabase123
+      MB_SITE_NAME: "Data Platform Analytics"
+      MB_SITE_LOCALE: ja
+      JAVA_TIMEZONE: Asia/Tokyo
+    volumes:
+      - metabase_data:/metabase-data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - analytics-network
+
+volumes:
+  superset_home:
+    driver: local
+  metabase_data:
+    driver: local
+
+networks:
+  analytics-network:
+    driver: bridge

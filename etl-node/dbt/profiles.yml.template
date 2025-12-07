@@ -1,0 +1,47 @@
+# =============================================================================
+# dbt profiles.yml
+# DWH_NODE_IP と STORAGE_NODE_IP を実際のIPアドレスに変更してください
+# =============================================================================
+
+data_platform:
+  target: dev
+  outputs:
+    # ClickHouse接続（本番DWH）
+    dev:
+      type: clickhouse
+      host: DWH_NODE_IP
+      port: 8123
+      user: etl_user
+      password: etl123
+      database: analytics
+      schema: public
+      secure: false
+      verify: false
+      connect_timeout: 10
+      send_receive_timeout: 300
+      sync_request_timeout: 5
+
+    prod:
+      type: clickhouse
+      host: DWH_NODE_IP
+      port: 8123
+      user: etl_user
+      password: etl123
+      database: analytics
+      schema: public
+      secure: false
+      verify: false
+      connect_timeout: 10
+      send_receive_timeout: 300
+      sync_request_timeout: 5
+
+    # PostgreSQL接続（補助DB）
+    postgres:
+      type: postgres
+      host: STORAGE_NODE_IP
+      port: 5432
+      user: analyst
+      password: analyst123
+      database: analytics
+      schema: public
+      threads: 4

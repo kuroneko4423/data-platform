@@ -1,0 +1,38 @@
+# =============================================================================
+# dbt_project.yml
+# =============================================================================
+
+name: 'data_platform'
+version: '1.0.0'
+config-version: 2
+
+profile: 'data_platform'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  data_platform:
+    bronze:
+      +materialized: table
+      +schema: bronze
+    silver:
+      +materialized: table
+      +schema: silver
+    gold:
+      +materialized: table
+      +schema: gold
+    marts:
+      +materialized: table
+      +schema: marts
+
+vars:
+  start_date: '2024-01-01'
