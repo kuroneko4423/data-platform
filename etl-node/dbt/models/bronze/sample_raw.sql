@@ -1,17 +1,17 @@
 -- =============================================================================
 -- Bronze層: 生データ取り込みサンプル
+-- PostgreSQL DWH用
 -- =============================================================================
 
 {{
     config(
         materialized='table',
-        engine='MergeTree()',
-        order_by='id'
+        schema='bronze'
     )
 }}
 
 SELECT
-    generateUUIDv4() as id,
-    now() as loaded_at,
+    gen_random_uuid() as id,
+    NOW() as loaded_at,
     'sample_source' as source_system,
     'placeholder' as raw_data

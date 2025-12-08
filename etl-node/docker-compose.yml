@@ -21,9 +21,9 @@ x-airflow-common: &airflow-common
     AIRFLOW__WEBSERVER__RBAC: 'true'
     # MinIO/S3接続設定
     AIRFLOW_CONN_MINIO: 's3://minioadmin:minioadmin123@?host=http://${STORAGE_NODE_IP}:9000'
-    # ClickHouse接続設定
-    AIRFLOW_CONN_CLICKHOUSE: 'clickhouse://default:clickhouse123@${DWH_NODE_IP}:8123/default'
-    # PostgreSQL接続設定
+    # DWH PostgreSQL接続設定
+    AIRFLOW_CONN_DWH: 'postgresql://etl_user:etl123@${DWH_NODE_IP}:5432/dwh'
+    # Storage PostgreSQL接続設定
     AIRFLOW_CONN_POSTGRES: 'postgresql://analyst:analyst123@${STORAGE_NODE_IP}:5432/analytics'
     # dbt設定
     DBT_PROFILES_DIR: /opt/airflow/dbt

@@ -1,6 +1,4 @@
 # データベース接続
-clickhouse-driver==0.2.9
-clickhouse-connect==0.7.19
 psycopg2-binary==2.9.9
 sqlalchemy==2.0.35
 trino==0.329.0

@@ -1,0 +1,9 @@
+# =============================================================================
+# Storage Node PostgreSQL カタログ設定
+# STORAGE_NODE_IP を実際のStorage NodeのIPアドレスに変更してください
+# =============================================================================
+
+connector.name=postgresql
+connection-url=jdbc:postgresql://STORAGE_NODE_IP:5432/analytics
+connection-user=analyst
+connection-password=analyst123

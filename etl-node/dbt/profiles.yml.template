@@ -6,42 +6,50 @@
 data_platform:
   target: dev
   outputs:
-    # ClickHouse接続（本番DWH）
+    # PostgreSQL DWH接続（開発環境）
     dev:
-      type: clickhouse
+      type: postgres
       host: DWH_NODE_IP
-      port: 8123
+      port: 5432
       user: etl_user
       password: etl123
-      database: analytics
-      schema: public
-      secure: false
-      verify: false
+      dbname: dwh
+      schema: silver
+      threads: 4
+      keepalives_idle: 0
       connect_timeout: 10
-      send_receive_timeout: 300
-      sync_request_timeout: 5
 
+    # PostgreSQL DWH接続（本番環境）
     prod:
-      type: clickhouse
+      type: postgres
       host: DWH_NODE_IP
-      port: 8123
+      port: 5432
       user: etl_user
       password: etl123
-      database: analytics
-      schema: public
-      secure: false
-      verify: false
+      dbname: dwh
+      schema: gold
+      threads: 4
+      keepalives_idle: 0
       connect_timeout: 10
-      send_receive_timeout: 300
-      sync_request_timeout: 5
 
-    # PostgreSQL接続（補助DB）
-    postgres:
+    # Bronze層への書き込み
+    bronze:
+      type: postgres
+      host: DWH_NODE_IP
+      port: 5432
+      user: etl_user
+      password: etl123
+      dbname: dwh
+      schema: bronze
+      threads: 4
+
+    # Storage Node PostgreSQL接続（補助DB）
+    storage:
       type: postgres
       host: STORAGE_NODE_IP
       port: 5432
       user: analyst
       password: analyst123
-      database: analytics
+      dbname: analytics
       schema: public
       threads: 4

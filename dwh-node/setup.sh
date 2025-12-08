@@ -73,12 +73,12 @@ configure() {
         log_info "trino/etc/catalog/minio.properties を生成しました"
     fi
     
-    # PostgreSQLカタログ設定を生成
-    if [ -f trino/etc/catalog/postgresql.properties.template ]; then
+    # Storage PostgreSQLカタログ設定を生成
+    if [ -f trino/etc/catalog/storage.properties.template ]; then
         sed "s/STORAGE_NODE_IP/$STORAGE_NODE_IP/g" \
-            trino/etc/catalog/postgresql.properties.template > \
-            trino/etc/catalog/postgresql.properties
-        log_info "trino/etc/catalog/postgresql.properties を生成しました"
+            trino/etc/catalog/storage.properties.template > \
+            trino/etc/catalog/storage.properties
+        log_info "trino/etc/catalog/storage.properties を生成しました"
     fi
     
     log_info "設定ファイル生成完了"
@@ -91,11 +91,11 @@ show_info() {
     echo ""
     echo "=========================================="
     echo "  DWH Node"
-    echo "  Services: ClickHouse, Trino"
+    echo "  Services: PostgreSQL (DWH), Trino"
     echo "=========================================="
     echo ""
     echo "提供サービス:"
-    echo "  - ClickHouse (OLAP DB)  : ポート 8123 (HTTP), 9000 (Native)"
+    echo "  - PostgreSQL (DWH)     : ポート 5432"
     echo "  - Trino (クエリエンジン) : ポート 8080"
     echo ""
 }
@@ -104,7 +104,7 @@ start() {
     log_title "DWH Nodeを起動します"
     
     # 設定ファイルの確認
-    if [ ! -f trino/etc/catalog/minio.properties ]; then
+    if [ ! -f trino/etc/catalog/minio.properties ] && [ -f trino/etc/catalog/minio.properties.template ]; then
         log_warn "設定ファイルが生成されていません。先に configure を実行してください。"
         configure
     fi
@@ -115,10 +115,20 @@ start() {
     log_info "起動完了！"
     echo ""
     echo "アクセス情報:"
-    echo "  ClickHouse HTTP: http://$(hostname -I | awk '{print $1}'):8123"
-    echo "    User: default / Password: clickhouse123"
+    echo "  PostgreSQL DWH: $(hostname -I | awk '{print $1}'):5432"
+    echo "    Database: dwh"
+    echo "    User: postgres / Password: postgres123"
+    echo "    User: etl_user / Password: etl123"
+    echo "    User: analyst / Password: analyst123"
     echo ""
     echo "  Trino: http://$(hostname -I | awk '{print $1}'):8080"
+    echo ""
+    echo "DWHスキーマ構成:"
+    echo "  - bronze  : 生データ層"
+    echo "  - silver  : クレンジング済み層"
+    echo "  - gold    : 集計・分析層"
+    echo "  - marts   : データマート"
+    echo "  - staging : ETL一時領域"
     echo ""
     echo "このVMのIPアドレスを他のノードの.envファイルに設定してください:"
     echo "  DWH_NODE_IP=$(hostname -I | awk '{print $1}')"
@@ -156,6 +166,11 @@ reset() {
     fi
 }
 
+psql_connect() {
+    log_title "PostgreSQL DWHに接続します"
+    docker exec -it postgres-dwh psql -U postgres -d dwh
+}
+
 case "${1:-}" in
     "check")
         check_docker
@@ -186,6 +201,9 @@ case "${1:-}" in
     "info")
         show_info
         ;;
+    "psql")
+        psql_connect
+        ;;
     *)
         show_info
         echo "使用方法: $0 <command>"
@@ -197,7 +215,8 @@ case "${1:-}" in
         echo "  stop       サービスを停止"
         echo "  restart    サービスを再起動"
         echo "  status     ステータス表示"
-        echo "  logs       ログ表示 (例: $0 logs clickhouse)"
+        echo "  logs       ログ表示 (例: $0 logs postgres-dwh)"
+        echo "  psql       PostgreSQLに接続"
         echo "  reset      全データ削除"
         echo "  info       ノード情報表示"
         echo ""

@@ -2,40 +2,33 @@ version: '3.8'
 
 # =============================================================================
 # DWH Node - データウェアハウス
-# Services: ClickHouse, Trino
+# Services: PostgreSQL (DWH), Trino
 # =============================================================================
 
 services:
   # ---------------------------------------------------------------------------
-  # ClickHouse - 列指向OLAP データベース
+  # PostgreSQL - データウェアハウス用
   # ---------------------------------------------------------------------------
-  clickhouse:
-    image: clickhouse/clickhouse-server:24.8-alpine
-    container_name: clickhouse
-    hostname: clickhouse
+  postgres-dwh:
+    image: postgres:16-alpine
+    container_name: postgres-dwh
+    hostname: postgres-dwh
     ports:
-      - "8123:8123"   # HTTP interface
-      - "9000:9000"   # Native client
-      - "9009:9009"   # Interserver HTTP
+      - "5432:5432"
     environment:
-      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-default}
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse123}
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_DB: dwh
     volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - clickhouse_logs:/var/log/clickhouse-server
-      - ./clickhouse/config.xml:/etc/clickhouse-server/config.d/custom-config.xml:ro
-      - ./clickhouse/users.xml:/etc/clickhouse-server/users.d/custom-users.xml:ro
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
+      - postgres_dwh_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+      - ./postgresql/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d dwh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
     networks:
       - dwh-network
@@ -55,7 +48,7 @@ services:
       - ./trino/etc:/etc/trino:ro
       - trino_data:/data/trino
     depends_on:
-      clickhouse:
+      postgres-dwh:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "trino", "--execute", "SELECT 1"]
@@ -68,9 +61,7 @@ services:
       - dwh-network
 
 volumes:
-  clickhouse_data:
-    driver: local
-  clickhouse_logs:
+  postgres_dwh_data:
     driver: local
   trino_data:
     driver: local
